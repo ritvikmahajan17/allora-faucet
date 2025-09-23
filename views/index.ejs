@@ -174,9 +174,12 @@
         .spacer {
             flex-grow: 1;
         }
+
+
     </style>
   </head>
   <body class="roboto-allora">
+
     <div id="app">
       <main class="container-md">
         <div class="py-5 text-center">
@@ -192,7 +195,7 @@
                   </select>
                 </span>
                 <input id="address" class="form-control" :placeholder="addressPlaceholder" v-model="address" name="address">
-                <button id="tokens-request-button" type="button" class="black-bg white btn d-flex flex-row" @click="validateReCaptcha">
+                <button id="tokens-request-button" type="button" class="black-bg white btn d-flex flex-row" @click="handleTokenRequest">
                   <span>
                     <span id="address-button-loading" class="spinner-border spinner-border-sm mt-1 mr-1" style="display:none" role="status" aria-hidden="true"></span>
                   </span>
@@ -318,6 +321,15 @@
           validateReCaptcha: function() {
               grecaptcha.execute();
           },
+          handleTokenRequest: function() {
+              // Check if reCAPTCHA is enabled
+              if (this.conf.reCaptchaEnabled) {
+                  this.validateReCaptcha();
+              } else {
+                  // Bypass reCAPTCHA and call directly
+                  this.submitRequestToken('disabled');
+              }
+          },
           submitRequestToken: async function(captcha_token) {
             try {
               await this.requestToken(captcha_token);
@@ -379,11 +391,21 @@
                 return;
               }
               // show result
-              this.message = `
-              <div class="alert alert-${data.code === 0 ? 'success' : 'danger'} alert-dismissible show fade mt-2" role="alert">
-                <li>${data.message}</li>
-              </div>
-              `;
+              if (data.code === 0) {
+                // Success! Show regular message
+                this.message = `
+                <div class="alert alert-success alert-dismissible show fade mt-2" role="alert">
+                  <strong>🎉 Success!</strong> ${data.message}
+                  ${data.txHash ? `<div class="mt-2"><small>Transaction Hash: ${data.txHash}</small></div>` : ''}
+                </div>
+                `;
+              } else {
+                this.message = `
+                <div class="alert alert-danger alert-dismissible show fade mt-2" role="alert">
+                  <li>${data.message}</li>
+                </div>
+                `;
+              }
             } catch (e) {
               console.log(e)
               // show request failed message
