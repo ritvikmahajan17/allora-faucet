@@ -46,8 +46,9 @@ app.get("/config.json", async (req, res) => {
     const chainConf = conf.blockchains[i];
     const addresses = [];
 
-    // For Ethereum-compatible chains, use ethers.js to get the address
-    const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic);
+    // For Ethereum-compatible chains, use ethers.js with HD path to get the correct address
+    const hdPath = pathToString(chainConf.sender.option.hdPaths[0]);
+    const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic, hdPath);
     addresses.push(wallet.address);
 
     sample[chainConf.name] = addresses;
@@ -129,11 +130,12 @@ app.get("/balance/:chain", async (req, res) => {
   try {
     const chainConf = conf.blockchains.find((x) => x.name === chain);
     if (chainConf) {
-      // For Ethereum-compatible chains, use ethers.js to get the address
+      // For Ethereum-compatible chains, use ethers.js to get the address with correct HD path
       const ethProvider = new ethers.providers.JsonRpcProvider(
         chainConf.endpoint.evm_endpoint
       );
-      const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic).connect(
+      const hdPath = pathToString(chainConf.sender.option.hdPaths[0]);
+      const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic, hdPath).connect(
         ethProvider
       );
 
@@ -428,13 +430,30 @@ app.post("/send", async (req, res, next) => {
                 .status(403)
                 .json({ code: 1, message: `IP added to blocklist.` });
             } else {
-              await enqueueAddress(statusAddress);
-              res
-                .status(201)
-                .json({
-                  code: 0,
-                  message: "Address enqueued for faucet processing.",
+              // Process transaction immediately instead of enqueueing
+              try {
+                console.log(`Processing immediate transaction for ${address}`);
+                const txResult = await sendEvmosTx(address, chain);
+                
+                if (txResult.code === 0) {
+                  res.status(201).json({
+                    code: 0,
+                    message: `Successfully sent tokens to ${address}`,
+                    txHash: txResult.hash
+                  });
+                } else {
+                  res.status(400).json({
+                    code: 1,
+                    message: "Transaction failed: " + (txResult.message || "Unknown error")
+                  });
+                }
+              } catch (txError) {
+                console.error("Transaction error:", txError);
+                res.status(500).json({
+                  code: 1,
+                  message: "Failed to process transaction: " + txError.message
                 });
+              }
             }
 
             await checker.update(address);
@@ -560,7 +579,8 @@ async function sendEvmosTx(recipient, chain) {
       chainConf.endpoint.evm_endpoint
     );
 
-    const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic).connect(
+    const hdPath = pathToString(chainConf.sender.option.hdPaths[0]);
+    const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic, hdPath).connect(
       ethProvider
     );
 

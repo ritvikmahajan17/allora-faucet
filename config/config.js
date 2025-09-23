@@ -18,9 +18,9 @@ export default {
     path: `./faucet.db`, // db for frequency checker(WIP)
   },
   project: {
-    name: "Testnet Faucet", // What ever you want, recommend: chain-id,
-    logo: "https://s3.amazonaws.com/assets.allora.network/logo.svg",
-    deployer: '<a href="https://allora.network">Allora</a>',
+    name: "Faucet", // What ever you want, recommend: chain-id,
+    logo: "",
+    deployer: "",
   },
   blockchains: [
     {
@@ -28,8 +28,8 @@ export default {
       endpoint: {
         // make sure that CORS is enabled in rpc section in config.toml
         // cors_allowed_origins = ["*"]
-        rpc_endpoint: "http://localhost:8545",
-        evm_endpoint: "http://localhost:8545", // For Ethereum JSON-RPC
+        rpc_endpoint: process.env.RPC_ENDPOINT,
+        evm_endpoint: process.env.EVM_ENDPOINT, // For Ethereum JSON-RPC
       },
       sender: {
         mnemonic: mnemonics[0], // Single mnemonic for Ethereum
@@ -48,10 +48,10 @@ export default {
       },
       limit: {
         // how many times each wallet address is allowed in a window(24h)
-        address: 2,
+        address: 100,
         // how many times each ip is allowed in a window(24h),
         // if you use proxy, double check if the req.ip is return client's ip.
-        ip: 20,
+        ip: 200,
         cooldownInSec: 1,
         processableAddresses: 100,
       },
