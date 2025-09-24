@@ -5,35 +5,18 @@ import * as dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
-// Load mnemonic from environment variable or file (fallback)
-let mnemonics;
-if (process.env.MNEMONIC) {
-  mnemonics = [process.env.MNEMONIC.trim()];
-  console.log(
-    "=================================================================="
-  );
-  console.log(`faucet mnemonic from ENV: ${mnemonics[0].substring(0, 15)} ...`);
-} else {
-  // Fallback to file for local development
-  try {
-    const mnemonic_path = "config/secret/mnemonic";
-    mnemonics = fs.readFileSync(mnemonic_path, "utf8").trim().split("\n");
-    console.log(
-      "=================================================================="
-    );
-    console.log(
-      `faucet mnemonic from FILE: ${mnemonics[0].substring(0, 15)} ...`
-    );
-  } catch (error) {
-    console.error(
-      "=================================================================="
-    );
-    console.error(
-      "ERROR: No mnemonic found! Set MNEMONIC environment variable or create config/secret/mnemonic file"
-    );
-    process.exit(1);
-  }
+// Load mnemonic from environment variable
+if (!process.env.MNEMONIC) {
+  console.error("==================================================================");
+  console.error("ERROR: MNEMONIC environment variable is required!");
+  console.error("Set MNEMONIC environment variable with your wallet mnemonic phrase");
+  console.error("==================================================================");
+  process.exit(1);
 }
+
+const mnemonics = [process.env.MNEMONIC.trim()];
+console.log("==================================================================");
+console.log(`faucet mnemonic from ENV: ${mnemonics[0].substring(0, 15)} ...`);
 
 export default {
   port: 8000, // http port

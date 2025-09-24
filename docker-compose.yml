@@ -2,10 +2,7 @@ version: "3.8"
 
 services:
   faucet:
-    # For local development, use build
     build: .
-    # For ECR deployment, use image (comment out build and uncomment image)
-    # image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/allora-faucet:latest
     container_name: allora-faucet
     restart: unless-stopped
     ports:
@@ -16,7 +13,6 @@ services:
       - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
     volumes:
-      - ./config/secret:/app/config/secret:ro
       - ./faucet.db:/app/faucet.db
     networks:
       - faucet-network
