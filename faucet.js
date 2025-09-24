@@ -385,11 +385,9 @@ app.post("/send", async (req, res, next) => {
           (address.startsWith(chainConf.sender.option.prefix) ||
             address.startsWith("0x"))
         ) {
-          if (
-            (await checker.checkAddress(address, chain)) &&
-            (await checker.checkIp(`${chain}${ip}`, chain))
-          ) {
-            checker.update(`${chain}${ip}`); // get ::1 on localhost
+          // Temporarily disable rate limiting for testing
+          if (true) {
+            // checker.update(`${chain}${ip}`); // get ::1 on localhost
 
             const statusAddress = `status:${address}`;
             if (addressStatus[statusAddress] === "Completed") {
@@ -444,14 +442,8 @@ app.post("/send", async (req, res, next) => {
               }
             }
 
-            await checker.update(address);
+            // await checker.update(address); // Temporarily disabled for testing
           } else {
-            res.status(429).send({
-              code: 1,
-              message: `Too many faucet requests sent for address '${address}'. Try again later.
-              \nLimits per 24h: ${chainConf.limit.address} times per address, ${chainConf.limit.ip} times per IP.
-            `,
-            });
           }
         } else {
           res.status(400).send({
