@@ -26,16 +26,14 @@ export default {
     {
       name: "allora-testnet-1",
       endpoint: {
-        // make sure that CORS is enabled in rpc section in config.toml
-        // cors_allowed_origins = ["*"]
-        rpc_endpoint: process.env.RPC_ENDPOINT,
-        evm_endpoint: process.env.EVM_ENDPOINT, // For Ethereum JSON-RPC
+        // Ethereum JSON-RPC endpoint for blockchain communication
+        evm_endpoint: process.env.EVM_ENDPOINT,
       },
       sender: {
         mnemonic: mnemonics[0], // Single mnemonic for Ethereum
         mnemonics,
         option: {
-          hdPaths: [stringToPath("m/44'/60'/0'/0/1")],
+          hdPaths: [stringToPath("m/44'/60'/0'/0/0")],
           prefix: "", // Ethereum addresses don't use prefix
         },
       },

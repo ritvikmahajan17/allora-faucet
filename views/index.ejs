@@ -280,8 +280,13 @@
               let amount = balance.balance.amount;
               let denom = balance.balance.denom;
               
+              // Convert Wei to ETH (18 decimal places) and show with 4 decimal places
+              if (denom === 'wei') {
+                amount = (parseFloat(amount) / Math.pow(10, 18)).toFixed(4);
+                denom = 'ETH';
+              }
               // Convert uallo to allo (18 decimal places) and truncate to 2 decimal places
-              if (denom === 'uallo') {
+              else if (denom === 'uallo') {
                 amount = (parseFloat(amount) / Math.pow(10, 18)).toFixed(2);
                 denom = 'allo';
               }

@@ -1,33 +1,31 @@
-FROM node:21-bookworm
+# Use Node.js 18 LTS as base image for better stability
+FROM node:18-alpine
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    USERNAME=appuser \
-    APP_PATH=/faucet
+# Set working directory
+WORKDIR /app
 
-RUN apt update && \
-    apt -y dist-upgrade && \
-    apt install -y --no-install-recommends \
-        tzdata \
-        ca-certificates  && \
-    echo "deb http://deb.debian.org/debian testing main" >> /etc/apt/sources.list && \
-    apt update && \
-    apt install -y --no-install-recommends -t testing \
-      zlib1g \
-      libgnutls30 \
-      perl-base && \
-    rm -rf /var/cache/apt/*
+# Copy package files first for better caching
+COPY package*.json ./
 
-WORKDIR ${APP_PATH}
+# Install dependencies
+RUN npm ci --only=production
 
-ADD . $APP_PATH
+# Copy application code
+COPY . .
 
-RUN npm install dependencies
+# Create config/secret directory and set permissions
+RUN mkdir -p config/secret && \
+    chown -R node:node /app
 
-RUN groupadd -g 1001 ${USERNAME} \
-    && useradd -m -d ${APP_PATH} -u 1001 -g 1001 ${USERNAME}
+# Switch to non-root user for security
+USER node
 
+# Expose port 8000
 EXPOSE 8000
 
-WORKDIR ${APP_PATH}
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8000/ || exit 1
 
-USER ${USERNAME}
+# Start the application
+CMD ["npm", "start"]

@@ -6,9 +6,6 @@ import { pathToString } from "@cosmjs/crypto";
 import { BigNumber, ethers } from "ethers";
 import { bech32 } from "bech32";
 
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { SigningStargateClient } from "@cosmjs/stargate";
-
 import conf from "./config/config.js";
 import { FrequencyChecker } from "./checker.js";
 
@@ -135,9 +132,10 @@ app.get("/balance/:chain", async (req, res) => {
         chainConf.endpoint.evm_endpoint
       );
       const hdPath = pathToString(chainConf.sender.option.hdPaths[0]);
-      const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic, hdPath).connect(
-        ethProvider
-      );
+      const wallet = Wallet.fromMnemonic(
+        chainConf.sender.mnemonic,
+        hdPath
+      ).connect(ethProvider);
 
       try {
         const balance = await ethProvider.getBalance(wallet.address);
@@ -289,24 +287,20 @@ app.post("/api/request", async (req, res, next) => {
           if (addressStatus[statusAddress] === "Completed") {
             addressStatus[statusAddress] = "cleared";
             console.log("cleared");
-            return res
-              .status(201)
-              .json({
-                code: 0,
-                message:
-                  "Your previous faucet request has been processed. You can now submit a new request.",
-              });
+            return res.status(201).json({
+              code: 0,
+              message:
+                "Your previous faucet request has been processed. You can now submit a new request.",
+            });
           }
 
           if (queue.includes(statusAddress)) {
             console.log("already in queue");
             console.log("Address already in queue");
-            return res
-              .status(200)
-              .json({
-                code: 0,
-                message: "Address already in the processing queue",
-              });
+            return res.status(200).json({
+              code: 0,
+              message: "Address already in the processing queue",
+            });
           }
 
           const ipBlocked = await checkIpBlockList(ip);
@@ -320,12 +314,10 @@ app.post("/api/request", async (req, res, next) => {
           await enqueueAddress(statusAddress);
           console.log("address enqueued");
           await checker.update(address);
-          return res
-            .status(201)
-            .json({
-              code: 0,
-              message: "Address enqueued for faucet processing.",
-            });
+          return res.status(201).json({
+            code: 0,
+            message: "Address enqueued for faucet processing.",
+          });
         } else {
           console.log("2 many requests");
           return res.status(429).json({
@@ -337,13 +329,11 @@ app.post("/api/request", async (req, res, next) => {
         }
       } else {
         console.log("address not supported");
-        return res
-          .status(400)
-          .json({
-            code: 1,
-            message: `Address '${address}' is not supported.`,
-            recipient: address,
-          });
+        return res.status(400).json({
+          code: 1,
+          message: `Address '${address}' is not supported.`,
+          recipient: address,
+        });
       }
       // } catch (err) {
       //   console.error(err);
@@ -404,23 +394,19 @@ app.post("/send", async (req, res, next) => {
             const statusAddress = `status:${address}`;
             if (addressStatus[statusAddress] === "Completed") {
               addressStatus[statusAddress] = "cleared";
-              return res
-                .status(201)
-                .json({
-                  code: 0,
-                  message:
-                    "Your previous faucet request has been processed. You can now submit a new request.",
-                });
+              return res.status(201).json({
+                code: 0,
+                message:
+                  "Your previous faucet request has been processed. You can now submit a new request.",
+              });
             }
 
             if (queue.includes(statusAddress)) {
               console.log("Address already in queue");
-              return res
-                .status(200)
-                .json({
-                  code: 0,
-                  message: "Address already in the processing queue",
-                });
+              return res.status(200).json({
+                code: 0,
+                message: "Address already in the processing queue",
+              });
             }
 
             const ipBlocked = await checkIpBlockList(ip);
@@ -434,24 +420,26 @@ app.post("/send", async (req, res, next) => {
               try {
                 console.log(`Processing immediate transaction for ${address}`);
                 const txResult = await sendEvmosTx(address, chain);
-                
+
                 if (txResult.code === 0) {
                   res.status(201).json({
                     code: 0,
                     message: `Successfully sent tokens to ${address}`,
-                    txHash: txResult.hash
+                    txHash: txResult.hash,
                   });
                 } else {
                   res.status(400).json({
                     code: 1,
-                    message: "Transaction failed: " + (txResult.message || "Unknown error")
+                    message:
+                      "Transaction failed: " +
+                      (txResult.message || "Unknown error"),
                   });
                 }
               } catch (txError) {
                 console.error("Transaction error:", txError);
                 res.status(500).json({
                   code: 1,
-                  message: "Failed to process transaction: " + txError.message
+                  message: "Failed to process transaction: " + txError.message,
                 });
               }
             }
@@ -466,13 +454,11 @@ app.post("/send", async (req, res, next) => {
             });
           }
         } else {
-          res
-            .status(400)
-            .send({
-              code: 1,
-              message: `Address '${address}' is not supported.`,
-              recipient: address,
-            });
+          res.status(400).send({
+            code: 1,
+            message: `Address '${address}' is not supported.`,
+            recipient: address,
+          });
         }
         // } catch (err) {
         //   console.error(err);
@@ -513,65 +499,6 @@ async function getRecaptchaVerification(token) {
   return response.json();
 }
 
-async function sendCosmosTx(recipients, chain) {
-  console.log("sendCosmosTx", recipients, chain);
-
-  const chainConf = conf.blockchains.find((x) => x.name === chain);
-  if (chainConf) {
-    // Get the mnemonic to use and update the counter
-    const mnemonic = chainConf.sender.mnemonics[mnemonicCounter];
-    mnemonicCounter = (mnemonicCounter + 1) % chainConf.sender.mnemonics.length;
-
-    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(
-      mnemonic,
-      chainConf.sender.option
-    );
-    const [firstAccount] = await wallet.getAccounts();
-    console.log(`using faucet ${firstAccount.address}`);
-
-    const rpcEndpoint = chainConf.endpoint.rpc_endpoint;
-    const client = await SigningStargateClient.connectWithSigner(
-      rpcEndpoint,
-      wallet,
-      { gasPrice: chainConf.tx.fee.gasPrice }
-    );
-    const amount = chainConf.tx.amount;
-
-    const messages = recipients.map((recipient) => ({
-      typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-      value: {
-        fromAddress: firstAccount.address,
-        toAddress: recipient,
-        amount: amount,
-      },
-    }));
-    // console.log('stringMessage:', JSON.stringify(messages));
-
-    try {
-      const txResult = await client.signAndBroadcast(
-        firstAccount.address,
-        messages,
-        "auto"
-      );
-
-      if (txResult.code !== 0) {
-        throw new Error(
-          `Transaction failed with code ${txResult.code}: ${txResult.rawLog}`
-        );
-      }
-
-      console.log(
-        `Sent ${amount[0].amount}${amount[0].denom} tokens to ${recipients.length} addresses`
-      );
-      return { code: 0 };
-    } catch (e) {
-      throw new Error(`Failed to send tokens. Error: ${e.message}`);
-    }
-  }
-
-  throw new Error(`Blockchain Config [${chain}] not found`);
-}
-
 async function sendEvmosTx(recipient, chain) {
   try {
     const chainConf = conf.blockchains.find((x) => x.name === chain);
@@ -580,9 +507,10 @@ async function sendEvmosTx(recipient, chain) {
     );
 
     const hdPath = pathToString(chainConf.sender.option.hdPaths[0]);
-    const wallet = Wallet.fromMnemonic(chainConf.sender.mnemonic, hdPath).connect(
-      ethProvider
-    );
+    const wallet = Wallet.fromMnemonic(
+      chainConf.sender.mnemonic,
+      hdPath
+    ).connect(ethProvider);
 
     let evmAddress = recipient;
     if (recipient && !recipient.startsWith("0x")) {
