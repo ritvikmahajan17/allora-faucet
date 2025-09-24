@@ -115,8 +115,8 @@ sleep 10
 
 # Verify deployment
 if sudo docker ps --filter "name=allora-faucet" --format "table {{.Names}}\t{{.Status}}" | grep -q "allora-faucet"; then
-    # Try multiple ways to get public IP
-    INSTANCE_IP=$(curl -s --max-time 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || curl -s --max-time 5 http://checkip.amazonaws.com 2>/dev/null || echo "UNKNOWN")
+    # Try multiple ways to get public IP (redirect errors to avoid HTML in output)
+    INSTANCE_IP=$(curl -s --max-time 5 http://checkip.amazonaws.com 2>/dev/null | head -1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "UNKNOWN")
     log "✅ Faucet deployed successfully!"
     log "🌐 Access URL: http://$INSTANCE_IP:8000"
     log "📋 Container status:"

@@ -536,7 +536,11 @@ async function sendEvmosTx(recipient, chain) {
     return repTx;
   } catch (e) {
     console.log("xxl e ", e);
-    return e;
+    return {
+      code: 1,
+      message: e.message || "Transaction failed",
+      error: e.toString(),
+    };
   }
 }
 
