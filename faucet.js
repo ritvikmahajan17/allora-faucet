@@ -37,6 +37,13 @@ app.get("/", (req, res) => {
   res.render("index", conf);
 });
 
+app.get("/health", async (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    datetime: new Date().toISOString(),
+  });
+});
+
 app.get("/config.json", async (req, res) => {
   const sample = {};
   for (let i = 0; i < conf.blockchains.length; i++) {
