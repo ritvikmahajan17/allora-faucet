@@ -7,15 +7,23 @@ dotenv.config();
 
 // Load mnemonic from environment variable
 if (!process.env.MNEMONIC) {
-  console.error("==================================================================");
+  console.error(
+    "=================================================================="
+  );
   console.error("ERROR: MNEMONIC environment variable is required!");
-  console.error("Set MNEMONIC environment variable with your wallet mnemonic phrase");
-  console.error("==================================================================");
+  console.error(
+    "Set MNEMONIC environment variable with your wallet mnemonic phrase"
+  );
+  console.error(
+    "=================================================================="
+  );
   process.exit(1);
 }
 
 const mnemonics = [process.env.MNEMONIC.trim()];
-console.log("==================================================================");
+console.log(
+  "=================================================================="
+);
 console.log(`faucet mnemonic from ENV: ${mnemonics[0].substring(0, 15)} ...`);
 
 export default {
