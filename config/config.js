@@ -5,12 +5,25 @@ import * as dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
-const mnemonic_path = "config/secret/mnemonic";
-const mnemonics = fs.readFileSync(mnemonic_path, "utf8").trim().split("\n");
-console.log(
-  "=================================================================="
-);
-console.log(`faucet mnemonic: ${mnemonics[0].substring(1, 15)} ...`);
+// Load mnemonic from environment variable or file (fallback)
+let mnemonics;
+if (process.env.MNEMONIC) {
+  mnemonics = [process.env.MNEMONIC.trim()];
+  console.log("==================================================================");
+  console.log(`faucet mnemonic from ENV: ${mnemonics[0].substring(0, 15)} ...`);
+} else {
+  // Fallback to file for local development
+  try {
+    const mnemonic_path = "config/secret/mnemonic";
+    mnemonics = fs.readFileSync(mnemonic_path, "utf8").trim().split("\n");
+    console.log("==================================================================");
+    console.log(`faucet mnemonic from FILE: ${mnemonics[0].substring(0, 15)} ...`);
+  } catch (error) {
+    console.error("==================================================================");
+    console.error("ERROR: No mnemonic found! Set MNEMONIC environment variable or create config/secret/mnemonic file");
+    process.exit(1);
+  }
+}
 
 export default {
   port: 8000, // http port

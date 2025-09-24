@@ -11,7 +11,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - EVM_ENDPOINT=${EVM_ENDPOINT:-http://localhost:8545}
+      - EVM_ENDPOINT=${EVM_ENDPOINT}
+      - MNEMONIC=${MNEMONIC}
       - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
     volumes:

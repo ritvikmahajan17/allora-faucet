@@ -12,6 +12,9 @@ BRANCH="ritvik-changes"
 APP_DIR="/opt/allora-faucet"
 EVM_ENDPOINT="http://l1bc-demo-dev-chain-rpc-216332031.us-east-1.elb.amazonaws.com/"
 
+# IMPORTANT: Set your mnemonic here (12 or 24 words)
+MNEMONIC="gesture inject test cycle original hollow east ridge hen combine junk child bacon zero hope comfort vacuum milk pitch cage oppose unhappy lunar seat"
+
 # Logging function
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/faucet-startup.log
@@ -84,7 +87,7 @@ ExecStart=/usr/bin/docker run -d \\
   --restart unless-stopped \\
   -p 8000:8000 \\
   -e EVM_ENDPOINT=$EVM_ENDPOINT \\
-  -v $APP_DIR/config/secret:/app/config/secret:ro \\
+  -e MNEMONIC="$MNEMONIC" \\
   -v $APP_DIR/faucet.db:/app/faucet.db \\
   allora-faucet:latest
 ExecStop=/usr/bin/docker stop allora-faucet
