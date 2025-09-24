@@ -36,19 +36,26 @@ systemctl start docker
 systemctl enable docker
 usermod -a -G docker ec2-user
 
-# Install AWS CLI
-log "☁️ Installing AWS CLI..."
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
-rm -rf awscliv2.zip aws/
+# Install AWS CLI if not present
+if ! command -v aws &> /dev/null; then
+    log "☁️ Installing AWS CLI..."
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+    rm -rf awscliv2.zip aws/
+else
+    log "✅ AWS CLI already installed, skipping..."
+fi
 
 # Clone the repository
 log "📥 Cloning repository..."
 if [ -d "$APP_DIR" ]; then
     rm -rf "$APP_DIR"
 fi
-git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+if ! git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"; then
+    log "❌ Failed to clone repository. Check branch name and repository access."
+    exit 1
+fi
 cd "$APP_DIR"
 
 # Create necessary directories
@@ -66,7 +73,7 @@ EOF
 
 # Build Docker image
 log "🏗️ Building Docker image..."
-docker build -t allora-faucet:latest .
+sudo docker build -t allora-faucet:latest .
 
 # Create systemd service for auto-restart
 log "🔧 Creating systemd service..."
@@ -99,28 +106,27 @@ EOF
 
 # Enable and start the service
 log "🚀 Starting Allora Faucet service..."
-systemctl daemon-reload
-systemctl enable allora-faucet
-systemctl start allora-faucet
+sudo systemctl daemon-reload
+sudo systemctl enable allora-faucet
+sudo systemctl start allora-faucet
 
 # Wait a moment and check status
 sleep 10
 
 # Verify deployment
-if docker ps --filter "name=allora-faucet" --format "table {{.Names}}\t{{.Status}}" | grep -q "allora-faucet"; then
-    INSTANCE_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+if sudo docker ps --filter "name=allora-faucet" --format "table {{.Names}}\t{{.Status}}" | grep -q "allora-faucet"; then
+    INSTANCE_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "UNKNOWN")
     log "✅ Faucet deployed successfully!"
     log "🌐 Access URL: http://$INSTANCE_IP:8000"
     log "📋 Container status:"
-    docker ps --filter "name=allora-faucet" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a /var/log/faucet-startup.log
+    sudo docker ps --filter "name=allora-faucet" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a /var/log/faucet-startup.log
     
-    # Send notification to CloudWatch Logs (optional)
-    yum install -y awslogs
+    # Log success message
     echo "Allora Faucet deployed successfully on $INSTANCE_IP" | logger -t allora-faucet
     
 else
     log "❌ Deployment failed! Check Docker logs:"
-    docker logs allora-faucet | tee -a /var/log/faucet-startup.log
+    sudo docker logs allora-faucet | tee -a /var/log/faucet-startup.log
     exit 1
 fi
 
@@ -129,9 +135,9 @@ log "🎉 Auto-deployment complete!"
 # Create a simple health check script
 cat > /usr/local/bin/faucet-health-check.sh << 'EOF'
 #!/bin/bash
-if ! docker ps --filter "name=allora-faucet" --format "{{.Names}}" | grep -q "allora-faucet"; then
+if ! sudo docker ps --filter "name=allora-faucet" --format "{{.Names}}" | grep -q "allora-faucet"; then
     echo "Faucet container not running, restarting..."
-    systemctl restart allora-faucet
+    sudo systemctl restart allora-faucet
 fi
 EOF
 
